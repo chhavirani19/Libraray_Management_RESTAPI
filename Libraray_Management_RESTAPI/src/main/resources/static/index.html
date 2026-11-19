@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Library Management</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --surface: #ffffff;
+    --border: #dfe3e8;
+    --text: #1c2430;
+    --muted: #5b6573;
+    --primary: #1f5fbf;
+    --primary-hover: #184c99;
+    --primary-soft: #e8f0fc;
+    --danger: #b42318;
+    --danger-soft: #fdecea;
+    --success: #1e7a46;
+    --success-soft: #e6f4ec;
+    --warn: #8a5a00;
+    --warn-soft: #fff4dc;
+    --focus: #f0a500;
+    --radius: 10px;
+    --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #11151b;
+      --surface: #1a2029;
+      --border: #2e3744;
+      --text: #e7ebf0;
+      --muted: #a2adbb;
+      --primary: #6ea3f0;
+      --primary-hover: #8db8f5;
+      --primary-soft: #1d2b40;
+      --danger: #f2877d;
+      --danger-soft: #3a1f1d;
+      --success: #6fcf97;
+      --success-soft: #16301f;
+      --warn: #f0c060;
+      --warn-soft: #362a12;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.5 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  }
+  .skip-link {
+    position: absolute; left: -9999px; top: 8px;
+    background: var(--primary); color: #fff; padding: 8px 14px; border-radius: 6px; z-index: 10;
+  }
+  .skip-link:focus { left: 16px; }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
+  .header-inner {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 18px 0; flex-wrap: wrap;
+  }
+  h1 { margin: 0; font-size: 1.5rem; font-weight: 650; letter-spacing: -0.01em; }
+  .subtitle { margin: 2px 0 0; color: var(--muted); font-size: 0.95rem; }
+  .base-url {
+    font-family: var(--mono); font-size: 0.85rem; color: var(--muted);
+    border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px;
+  }
+
+  main { padding: 24px 0 48px; }
+  .stats {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;
+  }
+  .stat {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px 18px;
+  }
+  .stat-label { color: var(--muted); font-size: 0.9rem; margin: 0; }
+  .stat-value { font-size: 1.75rem; font-weight: 650; margin: 2px 0 0; font-variant-numeric: tabular-nums; }
+
+  .layout { display: grid; grid-template-columns: 360px 1fr; gap: 24px; align-items: start; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px;
+  }
+  .card + .card { margin-top: 24px; }
+  .card h2 { margin: 0 0 4px; font-size: 1.15rem; font-weight: 650; }
+  .card .hint { margin: 0 0 16px; color: var(--muted); font-size: 0.9rem; }
+  .method {
+    display: inline-block; font-family: var(--mono); font-size: 0.75rem; font-weight: 700;
+    padding: 1px 7px; border-radius: 4px; vertical-align: 2px; margin-right: 6px;
+  }
+  .m-get { background: var(--success-soft); color: var(--success); }
+  .m-post { background: var(--primary-soft); color: var(--primary); }
+  .m-put { background: var(--warn-soft); color: var(--warn); }
+  .m-delete { background: var(--danger-soft); color: var(--danger); }
+
+  .field { margin-bottom: 14px; }
+  label { display: block; font-weight: 600; font-size: 0.92rem; margin-bottom: 4px; }
+  .req { color: var(--danger); }
+  input[type="text"], input[type="number"], input[type="search"] {
+    width: 100%; padding: 9px 12px; font: inherit; color: var(--text);
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  }
+  input[aria-invalid="true"] { border-color: var(--danger); }
+  .field-error { color: var(--danger); font-size: 0.85rem; margin: 4px 0 0; min-height: 0; }
+  .field-error:empty { display: none; }
+
+  .btn {
+    font: inherit; font-weight: 600; cursor: pointer; border-radius: 8px;
+    padding: 9px 16px; border: 1px solid transparent; min-height: 40px;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-hover); }
+  @media (prefers-color-scheme: dark) { .btn-primary { color: #0d1520; } }
+  .btn-ghost { background: transparent; color: var(--text); border-color: var(--border); }
+  .btn-ghost:hover { background: var(--bg); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  @media (prefers-color-scheme: dark) { .btn-danger { color: #1f0d0b; } }
+  .btn-sm { padding: 5px 12px; min-height: 34px; font-size: 0.9rem; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .inline-form { display: flex; gap: 10px; }
+  .inline-form input { flex: 1; }
+
+  .result {
+    margin-top: 14px; padding: 12px 14px; border-radius: 8px; font-size: 0.93rem;
+    border: 1px solid var(--border); background: var(--bg);
+  }
+  .result:empty { display: none; }
+  .result dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; }
+  .result dt { color: var(--muted); }
+  .result dd { margin: 0; font-weight: 600; }
+  .result.error { background: var(--danger-soft); border-color: transparent; color: var(--danger); }
+
+  .toolbar {
+    display: flex; justify-content: space-between; align-items: end; gap: 12px; flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .toolbar .search { min-width: 240px; flex: 0 1 320px; }
+  .toolbar .search label { font-size: 0.85rem; }
+
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+  caption { text-align: left; }
+  th, td { text-align: left; padding: 11px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  th { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 650; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tbody tr:hover { background: var(--bg); }
+  tr.editing { background: var(--primary-soft) !important; }
+  .id-cell { font-family: var(--mono); color: var(--muted); }
+  .title-cell { font-weight: 600; }
+  .tag {
+    display: inline-block; font-size: 0.82rem; padding: 2px 10px; border-radius: 999px;
+    background: var(--primary-soft); color: var(--primary); white-space: nowrap;
+  }
+  .stock-out { color: var(--danger); font-weight: 600; }
+  .actions { display: flex; gap: 6px; justify-content: flex-end; }
+  .empty { text-align: center; color: var(--muted); padding: 32px 10px; }
+
+  .log {
+    font-family: var(--mono); font-size: 0.85rem; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin: 0;
+    max-height: 280px; overflow: auto; white-space: pre-wrap; word-break: break-word;
+  }
+  .log-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; font-family: var(--mono); font-size: 0.88rem; }
+  .status { font-weight: 700; padding: 1px 8px; border-radius: 4px; }
+  .s-ok { background: var(--success-soft); color: var(--success); }
+  .s-err { background: var(--danger-soft); color: var(--danger); }
+
+  .toast {
+    position: fixed; right: 16px; bottom: 16px; max-width: min(420px, calc(100% - 32px));
+    padding: 12px 16px; border-radius: 8px; font-weight: 600;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.18); transform: translateY(150%); transition: transform .2s ease;
+  }
+  .toast.show { transform: translateY(0); }
+  .toast.ok { background: var(--success); color: #fff; }
+  .toast.err { background: var(--danger); color: #fff; }
+  @media (prefers-color-scheme: dark) { .toast.ok, .toast.err { color: #10161d; } }
+  @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+
+  dialog {
+    border: 1px solid var(--border); border-radius: var(--radius); padding: 22px;
+    background: var(--surface); color: var(--text); max-width: 420px; width: calc(100% - 32px);
+  }
+  dialog::backdrop { background: rgba(10, 14, 20, 0.5); }
+  dialog h2 { margin: 0 0 8px; font-size: 1.15rem; }
+  dialog p { margin: 0 0 18px; color: var(--muted); }
+
+  .visually-hidden {
+    position: absolute !important; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 560px) {
+    .stats { grid-template-columns: 1fr; gap: 10px; }
+    .stat-value { font-size: 1.4rem; }
+    th.hide-sm, td.hide-sm { display: none; }
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#books-heading">Skip to book list</a>
+
+<header>
+  <div class="wrap header-inner">
+    <div>
+      <h1>Library Management</h1>
+      <p class="subtitle">College library book records &mdash; Spring Boot REST API</p>
+    </div>
+    <span class="base-url" aria-label="API base URL">/api/books</span>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="stats" aria-label="Library summary">
+    <div class="stat"><p class="stat-label">Book titles</p><p class="stat-value" id="stat-titles">0</p></div>
+    <div class="stat"><p class="stat-label">Copies available</p><p class="stat-value" id="stat-copies">0</p></div>
+    <div class="stat"><p class="stat-label">Out of stock</p><p class="stat-value" id="stat-out">0</p></div>
+  </section>
+
+  <div class="layout">
+    <!-- Left column: forms -->
+    <div>
+      <section class="card" aria-labelledby="form-heading">
+        <h2 id="form-heading"><span class="method m-post" id="form-method">POST</span><span id="form-title">Add a new book</span></h2>
+        <p class="hint" id="form-hint">Creates a book with <code>@PostMapping</code> and <code>@RequestBody</code>.</p>
+
+        <form id="book-form" novalidate>
+          <div class="field">
+            <label for="title">Title <span class="req" aria-hidden="true">*</span></label>
+            <input type="text" id="title" name="title" required maxlength="100" autocomplete="off" aria-describedby="title-error">
+            <p class="field-error" id="title-error" role="alert"></p>
+          </div>
+          <div class="field">
+            <label for="author">Author <span class="req" aria-hidden="true">*</span></label>
+            <input type="text" id="author" name="author" required maxlength="60" autocomplete="off" aria-describedby="author-error">
+            <p class="field-error" id="author-error" role="alert"></p>
+          </div>
+          <div class="field">
+            <label for="category">Category <span class="req" aria-hidden="true">*</span></label>
+            <input type="text" id="category" name="category" required maxlength="40" list="category-list" autocomplete="off" aria-describedby="category-error">
+            <datalist id="category-list"></datalist>
+            <p class="field-error" id="category-error" role="alert"></p>
+          </div>
+          <div class="field">
+            <label for="availableCopies">Available copies <span class="req" aria-hidden="true">*</span></label>
+            <input type="number" id="availableCopies" name="availableCopies" required min="0" max="10000" step="1" inputmode="numeric" aria-describedby="availableCopies-error">
+            <p class="field-error" id="availableCopies-error" role="alert"></p>
+          </div>
+          <div class="btn-row">
+            <button type="submit" class="btn btn-primary" id="submit-btn">Add book</button>
+            <button type="button" class="btn btn-ghost" id="cancel-btn" hidden>Cancel edit</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card" aria-labelledby="find-heading">
+        <h2 id="find-heading"><span class="method m-get">GET</span>Find a book by ID</h2>
+        <p class="hint">Calls <code>/api/books/{id}</code>.</p>
+        <form id="find-form" class="inline-form" novalidate>
+          <label for="find-id" class="visually-hidden">Book ID</label>
+          <input type="number" id="find-id" min="1" step="1" placeholder="Book ID, e.g. 2" inputmode="numeric" required>
+          <button type="submit" class="btn btn-primary">Find</button>
+        </form>
+        <div class="result" id="find-result" aria-live="polite"></div>
+      </section>
+    </div>
+
+    <!-- Right column: list + API log -->
+    <div>
+      <section class="card" aria-labelledby="books-heading">
+        <div class="toolbar">
+          <div>
+            <h2 id="books-heading" tabindex="-1"><span class="method m-get">GET</span>All books</h2>
+            <p class="hint" style="margin:0">Calls <code>/api/books</code>.</p>
+          </div>
+          <div class="search">
+            <label for="search">Filter by title, author or category</label>
+            <input type="search" id="search" placeholder="Type to filter…" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <caption class="visually-hidden" id="table-caption">List of books</caption>
+            <thead>
+              <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Title</th>
+                <th scope="col" class="hide-sm">Author</th>
+                <th scope="col" class="hide-sm">Category</th>
+                <th scope="col" class="num">Copies</th>
+                <th scope="col"><span class="visually-hidden">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody id="book-rows">
+              <tr><td colspan="6" class="empty">Loading books…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="log-heading">
+        <h2 id="log-heading">Last API call</h2>
+        <p class="hint">The exact request and JSON response, same as you will see in Postman.</p>
+        <div class="log-head" id="log-head"><span style="color:var(--muted)">No request yet.</span></div>
+        <pre class="log" id="log-body" tabindex="0" aria-label="Last API response body">{}</pre>
+      </section>
+    </div>
+  </div>
+</main>
+
+<dialog id="delete-dialog" aria-labelledby="delete-title" aria-describedby="delete-text">
+  <h2 id="delete-title">Delete this book?</h2>
+  <p id="delete-text"></p>
+  <div class="btn-row" style="justify-content:flex-end">
+    <button type="button" class="btn btn-ghost" id="delete-cancel">Cancel</button>
+    <button type="button" class="btn btn-danger" id="delete-confirm">Delete</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+  const API = "/api/books";
+  const FIELDS = ["title", "author", "category", "availableCopies"];
+
+  let books = [];
+  let editingId = null;
+  let deleteId = null;
+
+  const $ = (id) => document.getElementById(id);
+  const form = $("book-form");
+
+  // ---------- helpers ----------
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  let toastTimer;
+  function toast(message, ok = true) {
+    const t = $("toast");
+    t.textContent = message;
+    t.className = "toast show " + (ok ? "ok" : "err");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove("show"), 3200);
+  }
+
+  // Calls the REST API and records the request/response in the "Last API call" panel
+  async function callApi(method, url, body) {
+    const options = { method, headers: {} };
+    if (body !== undefined) {
+      options.headers["Content-Type"] = "application/json";
+      options.body = JSON.stringify(body);
+    }
+    let status = 0, data = null;
+    try {
+      const res = await fetch(url, options);
+      status = res.status;
+      const text = await res.text();
+      data = text ? JSON.parse(text) : null;
+    } catch (e) {
+      data = { message: "Could not reach the server. Is the Spring Boot app running?" };
+    }
+    showLog(method, url, body, status, data);
+    return { ok: status >= 200 && status < 300, status, data };
+  }
+
+  function showLog(method, url, body, status, data) {
+    const ok = status >= 200 && status < 300;
+    $("log-head").innerHTML =
+      `<span class="method m-${method.toLowerCase()}">${method}</span>` +
+      `<span>${escapeHtml(url)}</span>` +
+      `<span class="status ${ok ? "s-ok" : "s-err"}">${status || "ERR"}</span>`;
+    let text = "";
+    if (body !== undefined) text += "// Request body\n" + JSON.stringify(body, null, 2) + "\n\n// Response\n";
+    text += JSON.stringify(data, null, 2);
+    $("log-body").textContent = text;
+  }
+
+  // ---------- list + stats ----------
+  async function loadBooks() {
+    const { ok, data } = await callApi("GET", API);
+    if (!ok) {
+      $("book-rows").innerHTML = `<tr><td colspan="6" class="empty">${escapeHtml(data?.message || "Could not load books.")}</td></tr>`;
+      return;
+    }
+    books = data;
+    render();
+  }
+
+  function render() {
+    const q = $("search").value.trim().toLowerCase();
+    const shown = books.filter((b) =>
+      !q || [b.title, b.author, b.category].some((v) => v.toLowerCase().includes(q)));
+
+    $("stat-titles").textContent = books.length;
+    $("stat-copies").textContent = books.reduce((sum, b) => sum + b.availableCopies, 0);
+    $("stat-out").textContent = books.filter((b) => b.availableCopies === 0).length;
+    $("table-caption").textContent = `List of books, showing ${shown.length} of ${books.length}`;
+
+    const cats = [...new Set(books.map((b) => b.category))].sort();
+    $("category-list").innerHTML = cats.map((c) => `<option value="${escapeHtml(c)}">`).join("");
+
+    if (shown.length === 0) {
+      $("book-rows").innerHTML = `<tr><td colspan="6" class="empty">${
+        books.length ? "No books match your filter." : "No books yet. Add one using the form."}</td></tr>`;
+      return;
+    }
+
+    $("book-rows").innerHTML = shown.map((b) => `
+      <tr class="${b.id === editingId ? "editing" : ""}">
+        <td class="id-cell">${b.id}</td>
+        <td class="title-cell">${escapeHtml(b.title)}</td>
+        <td class="hide-sm">${escapeHtml(b.author)}</td>
+        <td class="hide-sm"><span class="tag">${escapeHtml(b.category)}</span></td>
+        <td class="num">${b.availableCopies === 0
+            ? '<span class="stock-out">0 <span class="visually-hidden">(out of stock)</span></span>'
+            : b.availableCopies}</td>
+        <td>
+          <div class="actions">
+            <button type="button" class="btn btn-ghost btn-sm" data-edit="${b.id}"
+              aria-label="Edit ${escapeHtml(b.title)}">Edit</button>
+            <button type="button" class="btn btn-ghost btn-sm" data-delete="${b.id}"
+              aria-label="Delete ${escapeHtml(b.title)}" style="color:var(--danger)">Delete</button>
+          </div>
+        </td>
+      </tr>`).join("");
+  }
+
+  // ---------- add / update form ----------
+  function clearErrors() {
+    FIELDS.forEach((f) => {
+      $(f + "-error").textContent = "";
+      $(f).removeAttribute("aria-invalid");
+    });
+  }
+
+  function showErrors(errors) {
+    let first = null;
+    FIELDS.forEach((f) => {
+      if (errors[f]) {
+        $(f + "-error").textContent = errors[f];
+        $(f).setAttribute("aria-invalid", "true");
+        first = first || f;
+      }
+    });
+    if (first) $(first).focus();
+  }
+
+  // Same rules as the @Valid annotations on Book.java, checked before sending
+  function validate(book) {
+    const errors = {};
+    if (!book.title) errors.title = "Title is required";
+    if (!book.author) errors.author = "Author is required";
+    if (!book.category) errors.category = "Category is required";
+    if ($("availableCopies").value === "") errors.availableCopies = "Available copies is required";
+    else if (!Number.isInteger(book.availableCopies)) errors.availableCopies = "Available copies must be a whole number";
+    else if (book.availableCopies < 0) errors.availableCopies = "Available copies cannot be negative";
+    return errors;
+  }
+
+  function setMode(book) {
+    editingId = book ? book.id : null;
+    $("form-method").textContent = book ? "PUT" : "POST";
+    $("form-method").className = "method " + (book ? "m-put" : "m-post");
+    $("form-title").textContent = book ? `Edit book #${book.id}` : "Add a new book";
+    $("form-hint").innerHTML = book
+      ? "Updates title, author, category and copies with <code>@PutMapping</code>."
+      : "Creates a book with <code>@PostMapping</code> and <code>@RequestBody</code>.";
+    $("submit-btn").textContent = book ? "Update book" : "Add book";
+    $("cancel-btn").hidden = !book;
+    clearErrors();
+    if (book) {
+      FIELDS.forEach((f) => ($(f).value = book[f]));
+      $("title").focus();
+    } else {
+      form.reset();
+    }
+    render();
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearErrors();
+    const book = {
+      title: $("title").value.trim(),
+      author: $("author").value.trim(),
+      category: $("category").value.trim(),
+      availableCopies: Number($("availableCopies").value),
+    };
+    const errors = validate(book);
+    if (Object.keys(errors).length) { showErrors(errors); return; }
+
+    const isEdit = editingId !== null;
+    const { ok, data } = isEdit
+      ? await callApi("PUT", `${API}/${editingId}`, book)
+      : await callApi("POST", API, book);
+
+    if (ok) {
+      toast(isEdit ? `Book #${data.id} updated` : `"${data.title}" added with ID ${data.id}`);
+      setMode(null);
+      await loadBooks();
+    } else if (data?.errors) {
+      showErrors(data.errors);
+      toast("Please fix the highlighted fields", false);
+    } else {
+      toast(data?.message || "Request failed", false);
+      if (isEdit) { setMode(null); await loadBooks(); }
+    }
+  });
+
+  $("cancel-btn").addEventListener("click", () => setMode(null));
+
+  // ---------- table buttons ----------
+  $("book-rows").addEventListener("click", (e) => {
+    const editBtn = e.target.closest("[data-edit]");
+    const delBtn = e.target.closest("[data-delete]");
+    if (editBtn) {
+      const book = books.find((b) => b.id === Number(editBtn.dataset.edit));
+      if (book) setMode(book);
+    }
+    if (delBtn) {
+      const book = books.find((b) => b.id === Number(delBtn.dataset.delete));
+      if (!book) return;
+      deleteId = book.id;
+      $("delete-text").textContent = `"${book.title}" (ID ${book.id}) will be removed from the library.`;
+      $("delete-dialog").showModal();
+      $("delete-cancel").focus();
+    }
+  });
+
+  // ---------- delete ----------
+  $("delete-cancel").addEventListener("click", () => $("delete-dialog").close());
+  $("delete-confirm").addEventListener("click", async () => {
+    $("delete-dialog").close();
+    const { ok, data } = await callApi("DELETE", `${API}/${deleteId}`);
+    toast(data?.message || (ok ? "Deleted" : "Delete failed"), ok);
+    if (deleteId === editingId) setMode(null);
+    deleteId = null;
+    await loadBooks();
+  });
+
+  // ---------- find by id ----------
+  $("find-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const id = $("find-id").value.trim();
+    const box = $("find-result");
+    if (!id) { box.className = "result error"; box.textContent = "Please enter a book ID."; return; }
+    const { ok, data } = await callApi("GET", `${API}/${id}`);
+    if (ok) {
+      box.className = "result";
+      box.innerHTML = `<dl>
+        <dt>ID</dt><dd>${data.id}</dd>
+        <dt>Title</dt><dd>${escapeHtml(data.title)}</dd>
+        <dt>Author</dt><dd>${escapeHtml(data.author)}</dd>
+        <dt>Category</dt><dd>${escapeHtml(data.category)}</dd>
+        <dt>Copies</dt><dd>${data.availableCopies}</dd></dl>`;
+    } else {
+      box.className = "result error";
+      box.textContent = data?.message || "Book not found";
+    }
+  });
+
+  $("search").addEventListener("input", render);
+
+  loadBooks();
+</script>
+</body>
+</html>

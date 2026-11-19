@@ -1,0 +1,210 @@
+=====================================================================
+   LIBRARY MANAGEMENT REST API  -  POSTMAN COMMANDS
+=====================================================================
+
+Base URL :  http://localhost:8080/api/books
+Web UI   :  http://localhost:8080/          (open in any browser)
+
+BEFORE YOU START
+  1. Run the project in Eclipse:
+       Right-click LibrarayManagementRestapiApplication.java
+       > Run As > Java Application
+  2. Wait for the Console to show:  "Started LibrarayManagementRestapiApplication"
+  3. Open Postman.
+
+HOW TO SEND A REQUEST WITH A BODY (POST / PUT) IN POSTMAN
+  - Choose the METHOD from the dropdown (POST / PUT).
+  - Paste the URL.
+  - Click the "Body" tab > select "raw" > choose "JSON" from the dropdown
+    on the right (this sets Content-Type: application/json for you).
+  - Paste the JSON body and click "Send".
+
+The app starts with 5 sample books (IDs 1 to 5).
+New books get the next ID (6, 7, 8 ...).
+Data is kept in memory, so it resets every time the app restarts.
+
+
+---------------------------------------------------------------------
+ (b) ADD A NEW BOOK            @PostMapping + @RequestBody
+---------------------------------------------------------------------
+Method : POST
+URL    : http://localhost:8080/api/books
+Body   : raw > JSON
+
+{
+    "title": "The Alchemist",
+    "author": "Paulo Coelho",
+    "category": "Fiction",
+    "availableCopies": 8
+}
+
+Expected : 201 Created
+{
+    "id": 6,
+    "title": "The Alchemist",
+    "author": "Paulo Coelho",
+    "category": "Fiction",
+    "availableCopies": 8
+}
+
+Another one to add:
+{
+    "title": "Let Us C",
+    "author": "Yashavant Kanetkar",
+    "category": "Programming",
+    "availableCopies": 6
+}
+
+
+---------------------------------------------------------------------
+ (c) GET ALL BOOKS             @GetMapping
+---------------------------------------------------------------------
+Method : GET
+URL    : http://localhost:8080/api/books
+Body   : none
+
+Expected : 200 OK   (a JSON list of all books)
+
+
+---------------------------------------------------------------------
+ (c) GET ONE BOOK BY ID        @GetMapping("/{id}")
+---------------------------------------------------------------------
+Method : GET
+URL    : http://localhost:8080/api/books/1
+Body   : none
+
+Expected : 200 OK
+{
+    "id": 1,
+    "title": "Clean Code",
+    "author": "Robert C. Martin",
+    "category": "Programming",
+    "availableCopies": 5
+}
+
+Book that does not exist:
+Method : GET
+URL    : http://localhost:8080/api/books/999
+Expected : 404 Not Found
+{
+    "timestamp": "...",
+    "status": 404,
+    "error": "Not Found",
+    "message": "Book not found with ID: 999"
+}
+
+
+---------------------------------------------------------------------
+ (d) UPDATE A BOOK             @PutMapping("/{id}")
+     (title, author, category and availableCopies)
+---------------------------------------------------------------------
+Method : PUT
+URL    : http://localhost:8080/api/books/1
+Body   : raw > JSON
+
+{
+    "title": "Clean Code (2nd Edition)",
+    "author": "Robert C. Martin",
+    "category": "Software Engineering",
+    "availableCopies": 10
+}
+
+Expected : 200 OK  (the updated book, ID stays 1)
+
+Updating a book that does not exist:
+Method : PUT
+URL    : http://localhost:8080/api/books/999
+Body   : same JSON as above
+Expected : 404 Not Found  ->  "Book not found with ID: 999"
+
+
+---------------------------------------------------------------------
+ (e) DELETE A BOOK             @DeleteMapping("/{id}")
+---------------------------------------------------------------------
+Method : DELETE
+URL    : http://localhost:8080/api/books/5
+Body   : none
+
+Expected : 200 OK  (successful deletion)
+{
+    "message": "Book with ID 5 deleted successfully",
+    "deletedBook": {
+        "id": 5,
+        "title": "Wings of Fire",
+        "author": "A. P. J. Abdul Kalam",
+        "category": "Biography",
+        "availableCopies": 0
+    }
+}
+
+Send the SAME request again (book is already gone):
+Expected : 404 Not Found
+{
+    "timestamp": "...",
+    "status": 404,
+    "error": "Not Found",
+    "message": "Book not found with ID: 5"
+}
+
+
+---------------------------------------------------------------------
+ EXTRA: ERROR CASES (good to show the examiner)
+---------------------------------------------------------------------
+1) Invalid data -> 400 Bad Request
+Method : POST
+URL    : http://localhost:8080/api/books
+Body   : raw > JSON
+{
+    "title": "",
+    "author": "",
+    "category": "",
+    "availableCopies": -3
+}
+Expected : 400 Bad Request
+{
+    "status": 400,
+    "error": "Bad Request",
+    "message": "Validation failed",
+    "errors": {
+        "title": "Title is required",
+        "author": "Author is required",
+        "category": "Category is required",
+        "availableCopies": "Available copies cannot be negative"
+    }
+}
+
+2) ID is not a number -> 400 Bad Request
+Method : GET
+URL    : http://localhost:8080/api/books/abc
+Expected : "Invalid value 'abc' for id. It must be a number."
+
+
+=====================================================================
+ SAME COMMANDS AS curl  (paste into Command Prompt, or use
+ Postman > Import > Raw text and paste one line to create a request)
+=====================================================================
+
+curl -X GET http://localhost:8080/api/books
+
+curl -X GET http://localhost:8080/api/books/1
+
+curl -X POST http://localhost:8080/api/books -H "Content-Type: application/json" -d "{\"title\":\"The Alchemist\",\"author\":\"Paulo Coelho\",\"category\":\"Fiction\",\"availableCopies\":8}"
+
+curl -X PUT http://localhost:8080/api/books/1 -H "Content-Type: application/json" -d "{\"title\":\"Clean Code (2nd Edition)\",\"author\":\"Robert C. Martin\",\"category\":\"Software Engineering\",\"availableCopies\":10}"
+
+curl -X DELETE http://localhost:8080/api/books/5
+
+curl -X DELETE http://localhost:8080/api/books/999
+
+
+=====================================================================
+ SUMMARY TABLE
+=====================================================================
+ Part | Method | URL                 | Success        | Not found
+ -----+--------+---------------------+----------------+-------------
+ (b)  | POST   | /api/books          | 201 Created    | -
+ (c)  | GET    | /api/books          | 200 OK         | -
+ (c)  | GET    | /api/books/{id}     | 200 OK         | 404
+ (d)  | PUT    | /api/books/{id}     | 200 OK         | 404
+ (e)  | DELETE | /api/books/{id}     | 200 OK + msg   | 404
+=====================================================================
